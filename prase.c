@@ -40,7 +40,11 @@ void handle_history_command(char *history_command) {
     strcpy(history_command, entry->line);
   } else {
     // Handle the case where the history entry does not exist
-    fprintf(stderr, "Error: History entry %c does not exist.\n",
+    if (history_command[1] == '!') {
+      fprintf(stderr, "history error: no orders\n");
+    }
+    else
+      fprintf(stderr, "Error: History entry %c does not exist.\n",
             history_command[1]);
   }
   //   while (his[i] != NULL)
