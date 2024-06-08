@@ -8,6 +8,7 @@
 #include <readline/history.h>
 #include <string.h>
 #include <stdbool.h>
+#include <signal.h>
 
 #define MaxSize 256
 

@@ -1,6 +1,4 @@
 #include "shell.h"
-#include <readline/history.h>
-#include <stdio.h>
 
 #define MaxSize 256
 //let me study git!
@@ -15,6 +13,15 @@ void show_history() {
   }
 }
 
+void handle_signal(int sig) {
+    if (sig == SIGINT) {
+        printf("\nReceived SIGINT (Ctrl+C). Type 'exit' to quit the shell.\n");
+    } else if (sig == SIGTSTP) {
+        printf("\nReceived SIGTSTP (Ctrl+Z). Type 'exit' to quit the shell.\n");
+    }
+}
+
+
 // history 没有历史命令处理
 //& !!
 bool flag = false; // extern外部引用，前者必须是全局变量！！！
@@ -26,9 +33,14 @@ int main() {
   int argc = 0;
   char prompt[MaxSize] = {0};
 
+
   interface(prompt);
 
   using_history(); // 使用历史记录！
+
+  signal(SIGINT, handle_signal);
+  signal(SIGTSTP, handle_signal);
+
 
   // output_command = fork();
   // if(output_command == 0) {
@@ -38,7 +50,6 @@ int main() {
   //     show_history();
   //   }
   // }
-  {
     while (1) {
       input = readline(prompt);
 
@@ -78,7 +89,6 @@ int main() {
     for (int i = 0; i < argc; i++) {
       free(argv[i]);
     }
-  }
 
   return 0;
 }

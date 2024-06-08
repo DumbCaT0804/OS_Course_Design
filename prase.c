@@ -1,5 +1,5 @@
 #include "shell.h"
-
+//let us study git!
 extern bool flag;
 
 void prase_command(char *command, char **argv, int *argc) {
