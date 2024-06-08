@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #define MaxSize 256
-
+//let me study git!
 // https://www.cnblogs.com/LiuYanYGZ/p/14806139.html
 void show_history() {
   int i = 0;
