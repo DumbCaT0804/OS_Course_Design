@@ -93,7 +93,7 @@ int main() {
   char prompt[MaxSize] = {0};
 
   init_pid(&head);
-  interface(prompt);
+
 
   using_history(); // 使用历史记录！
 
@@ -118,20 +118,23 @@ int main() {
     close(p[0]);                           // 关闭父进程读功能
   }
   // 实际操作 父子进程
-  if (monitoring_process == 0) {
-    pipe_list[0] = '\n';
+if (monitoring_process == 0) {
+    pipe_list[0] = '\0'; // 清空字符串
     sleep(5);
     while (1) {
-      // fcntl(p[0],F_SETFL, O_NONBLOCK);  //取消阻塞
-      int bytes_read = read(p[0], pipe_read, MaxSize);
-      if (bytes_read > 0) { // 目前是输入命令后，监督进程在等待后输出已输入命令
-        strncat(pipe_list, pipe_read, MaxSize * 10 - strlen(pipe_list) - 1);
-        printf("%s", pipe_list);
-        sleep(3); // 把这两条移出来就变成固定时间里
-      }
+       fcntl(p[0],F_SETFL, O_NONBLOCK);  //取消阻塞
+        int bytes_read = read(p[0], pipe_read, MaxSize);
+        if (bytes_read > 0) {
+            pipe_read[bytes_read] = '\0'; // 确保读取的数据以 null 结尾
+            strcat(pipe_list, pipe_read); // 将读取的数据追加到 pipe_list 中
+        }
+        printf("\n%s", pipe_list);
+        sleep(5);
     }
-  } else {
+}
+ else {
     while (1) {
+      interface(prompt);
       input = readline(prompt);
       // 检查输入是否为空
       if (input == NULL) {

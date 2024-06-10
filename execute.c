@@ -15,7 +15,15 @@ void execute_command(char *command, char **argv, int *argc) {
   {
     if (strcmp(command, "history") == 0) {
       show_history();
-    } else if (execvp(argv[0], argv) == -1) {
+    } 
+    // else if(strstr(command, "cd") != NULL) {
+    //   int x = chdir(argv[1]);
+    //     if(x == -1) {
+    //       printf("bash: cd: %s/: No such file or directory", argv[1]);
+    //     }
+    //     printf("%s\n",argv[1]);
+    // }
+    else if (execvp(argv[0], argv) == -1) {
       perror("exec error");
     }
     exit(EXIT_FAILURE);
