@@ -12,7 +12,7 @@
 #include <fcntl.h>
 
 #define MaxSize 256
-
+#define sleep_time 10
 typedef struct pid_list pid_list;
 typedef pid_list* pid_head;
 

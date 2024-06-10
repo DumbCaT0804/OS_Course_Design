@@ -94,7 +94,6 @@ int main() {
 
   init_pid(&head);
 
-
   using_history(); // 使用历史记录！
 
   signal(SIGINT, handle_signal);
@@ -118,21 +117,20 @@ int main() {
     close(p[0]);                           // 关闭父进程读功能
   }
   // 实际操作 父子进程
-if (monitoring_process == 0) {
+  if (monitoring_process == 0) {
     pipe_list[0] = '\0'; // 清空字符串
-    sleep(5);
+    sleep(sleep_time);
     while (1) {
-       fcntl(p[0],F_SETFL, O_NONBLOCK);  //取消阻塞
-        int bytes_read = read(p[0], pipe_read, MaxSize);
-        if (bytes_read > 0) {
-            pipe_read[bytes_read] = '\0'; // 确保读取的数据以 null 结尾
-            strcat(pipe_list, pipe_read); // 将读取的数据追加到 pipe_list 中
-        }
-        printf("\n%s", pipe_list);
-        sleep(5);
+      fcntl(p[0], F_SETFL, O_NONBLOCK); // 取消阻塞
+      int bytes_read = read(p[0], pipe_read, MaxSize);
+      if (bytes_read > 0) {
+        pipe_read[bytes_read] = '\0'; // 确保读取的数据以 null 结尾
+        strcat(pipe_list, pipe_read); // 将读取的数据追加到 pipe_list 中
+      }
+      printf("\n%s", pipe_list);
+      sleep(sleep_time);
     }
-}
- else {
+  } else {
     while (1) {
       interface(prompt);
       input = readline(prompt);
@@ -148,6 +146,7 @@ if (monitoring_process == 0) {
         add_history(input); // 不加！这个的，因为它不是一条命令
       }
       sprintf(pipe_write, "%d %s\n", count, input);
+      count++;
       write(p[1], pipe_write, strlen(pipe_write));
       // 使用分号分隔多个命令
       command = strsep(&input, ";");
@@ -173,16 +172,17 @@ if (monitoring_process == 0) {
         // 如果是外置命令，直接用exec函数族执行
         else {
           prase_command(command, argv, &argc);
-          execute_command(command, argv, &argc);
+          if (strstr(command, "cd") != NULL) {
+            if (chdir(argv[1]) == -1) {
+              printf("bash: cd: %s/: No such file or directory", argv[1]);
+            }
+          } else
+            execute_command(command, argv, &argc);
         }
 
         command = strsep(&input, ";");
       }
-      count++;
     }
   }
-
-  // 释放内存，防止泄漏
-
   return 0;
 }
