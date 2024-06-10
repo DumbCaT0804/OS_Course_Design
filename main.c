@@ -1,13 +1,62 @@
-//!!!!!子进程回收未处理
 
 #include "shell.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 #define MaxSize 256
 // let me study git!
 //  https://www.cnblogs.com/LiuYanYGZ/p/14806139.html
 
 bool flag = false; // extern外部引用，前者必须是全局变量！！！
+
+typedef struct pid_list {
+  pid_t pid;
+  struct pid_list *next;
+} pid_list, *pid_head;
+
+pid_head head = NULL; // 提前定义，是为了能够extern让其他文件引用
+
+pid_head init_pid(pid_head *head) {
+  *head = (pid_list *)malloc(sizeof(pid_list));
+  if (head == NULL) {
+    perror("memory allocation error");
+    exit(EXIT_FAILURE);
+  }
+  (*head)->next = NULL;
+
+  return *head;
+}
+
+pid_head insert_pid(pid_t new_pid, pid_head *head) {
+  pid_list *new_node = (pid_list *)malloc(sizeof(pid_list));
+
+  if (new_node == NULL) {
+    perror("memory allocation error");
+    exit(EXIT_FAILURE);
+  }
+
+  new_node->pid = new_pid;
+  new_node->next = (*head)->next;
+  (*head)->next = new_node;
+  printf("插入成功\n");
+  printf("%d\n", (*head)->next->pid);
+  return *head;
+}
+
+void kill_child_process(pid_head head) {
+  pid_list *current = head->next;
+  pid_list *temp;
+  printf("kill 子进程\n");
+  while (current != NULL) {
+    temp = current;
+    printf("子进程：%d\n", temp->pid);
+    kill(temp->pid, SIGKILL);
+    current = current->next;
+    free(temp);
+  }
+
+  free(head);
+}
 
 void show_history() {
   int i = 0;
@@ -30,9 +79,6 @@ void child_handle_signal(int sig) {
   // 让子进程对于ctrl + c 等不做处理
 }
 
-// history 没有历史命令处理
-//& !!
-
 int main() {
   pid_t monitoring_process;
   int p[2];
@@ -46,6 +92,7 @@ int main() {
   int argc = 0;
   char prompt[MaxSize] = {0};
 
+  init_pid(&head);
   interface(prompt);
 
   using_history(); // 使用历史记录！
@@ -59,6 +106,7 @@ int main() {
   } // 保证父子进程都有pipe;
 
   monitoring_process = fork();
+
   // 预处理 父子进程
   if (monitoring_process == 0) {
     signal(SIGINT, child_handle_signal);
@@ -66,20 +114,22 @@ int main() {
 
     close(p[1]); // 关闭子进程写功能
   } else {
-    close(p[0]); // 关闭父进程读功能
+    insert_pid(monitoring_process, &head); // 插入子进程pid
+    close(p[0]);                           // 关闭父进程读功能
   }
   // 实际操作 父子进程
   if (monitoring_process == 0) {
     pipe_list[0] = '\n';
-        while (1) {
-            int bytes_read = read(p[0], pipe_read, MaxSize);
-            if (bytes_read > 0) {
-                //pipe_read[bytes_read] = '\0';  // 确保字符串以null结尾
-                strncat(pipe_list, pipe_read, MaxSize * 10 - strlen(pipe_list) - 1);
-                sleep(3);
-                printf("%s", pipe_list);
-            }
-        }
+    sleep(5);
+    while (1) {
+      // fcntl(p[0],F_SETFL, O_NONBLOCK);  //取消阻塞
+      int bytes_read = read(p[0], pipe_read, MaxSize);
+      if (bytes_read > 0) { // 目前是输入命令后，监督进程在等待后输出已输入命令
+        strncat(pipe_list, pipe_read, MaxSize * 10 - strlen(pipe_list) - 1);
+        printf("%s", pipe_list);
+        sleep(3); // 把这两条移出来就变成固定时间里
+      }
+    }
   } else {
     while (1) {
       input = readline(prompt);
@@ -109,13 +159,12 @@ int main() {
         } else if (strcmp(command, "exit") == 0) {
 
           //!!!!!子
-          kill(monitoring_process, SIGKILL);
+          kill_child_process(head);
+          // kill(monitoring_process, SIGKILL);
 
           free(input);
           free(command);
-          for (int i = 0; i < argc; i++) {
-            free(argv[i]);
-          }
+
           return 0;
         }
         // 如果是外置命令，直接用exec函数族执行

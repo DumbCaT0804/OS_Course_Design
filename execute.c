@@ -2,6 +2,8 @@
 #include <stdio.h>
 //123
 extern bool flag;
+extern pid_head head;
+
 void execute_command(char *command, char **argv, int *argc) {
   pid_t pid;
   int status;
@@ -19,6 +21,7 @@ void execute_command(char *command, char **argv, int *argc) {
     exit(EXIT_FAILURE);
   } else { // 父进程
     if (flag) {
+      insert_pid(pid, &head);
       flag = false;
     } else {
       do {
