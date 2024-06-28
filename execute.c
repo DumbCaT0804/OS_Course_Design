@@ -11,7 +11,7 @@ void execute_command(char *command, char **argv, int *argc) {
     perror("fork error");
     exit(EXIT_FAILURE);
   }
-  if (pid == 0) // 子进程
+  if (pid == 0) // 子进程exec代替，来执行命令
   {
     if (strcmp(command, "history") == 0) {
       show_history();
@@ -20,18 +20,15 @@ void execute_command(char *command, char **argv, int *argc) {
       perror("exec error");
     }
     exit(EXIT_FAILURE);
-  } else { // 父进程
+  } else { 
+  // 父进程
+  //flag == true 代表后台进行，插入pid 以便后续程序结束释放子进程
     if (flag) {
       insert_pid(pid, &head);
       flag = false;
     } else {
-      do {
-        pid_t wpid = waitpid(pid, &status, WUNTRACED | WCONTINUED);
-        if (wpid == -1) {
-          perror("waitpid error");
-          exit(EXIT_FAILURE);
-        }
-      } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-    }
+        waitpid(pid, &status, 0);
   }
 }
+}
+

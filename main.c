@@ -27,6 +27,7 @@ pid_head init_pid(pid_head *head) {
   return *head;
 }
 
+//头插法插入子进程pid
 pid_head insert_pid(pid_t new_pid, pid_head *head) {
   pid_list *new_node = (pid_list *)malloc(sizeof(pid_list));
 
@@ -43,6 +44,7 @@ pid_head insert_pid(pid_t new_pid, pid_head *head) {
   return *head;
 }
 
+//遍历删除子进程
 void kill_child_process(pid_head head) {
   pid_list *current = head->next;
   pid_list *temp;
@@ -58,6 +60,7 @@ void kill_child_process(pid_head head) {
   free(head);
 }
 
+//history命令具体实现
 void show_history() {
   int i = 0;
   HIST_ENTRY **his;
@@ -68,13 +71,14 @@ void show_history() {
   }
 }
 
+//安装父进程信号
 void handle_signal(int sig) {
   if (sig == SIGINT)
     printf("\nReceived SIGINT (Ctrl+C). Type 'exit' to quit the shell.\n");
   else if (sig == SIGTSTP)
     printf("\nReceived SIGTSTP (Ctrl+Z). Type 'exit' to quit the shell.\n");
 }
-
+//安装子进程信号
 void child_handle_signal(int sig) {
   // 让子进程对于ctrl + c 等不做处理
 }
@@ -94,7 +98,7 @@ int main() {
 
   init_pid(&head);
 
-  using_history(); // 使用历史记录！
+  using_history(); // 使用历史ps记录！
 
   signal(SIGINT, handle_signal);
   signal(SIGTSTP, handle_signal);
@@ -118,33 +122,39 @@ int main() {
   }
   // 实际操作 父子进程
   if (monitoring_process == 0) {
+    //监视进程执行
     pipe_list[0] = '\0'; // 清空字符串
     sleep(sleep_time);
     while (1) {
-      fcntl(p[0], F_SETFL, O_NONBLOCK); // 取消阻塞
+      fcntl(p[0], F_SETFL, O_NONBLOCK); // 取消阻塞 保证每10s发送一次主进程的命令信息
       int bytes_read = read(p[0], pipe_read, MaxSize);
       if (bytes_read > 0) {
         pipe_read[bytes_read] = '\0'; // 确保读取的数据以 null 结尾
+
+        //char *strcat(char *dest, const char *src); src替代dest的null
         strcat(pipe_list, pipe_read); // 将读取的数据追加到 pipe_list 中
       }
       printf("\n%s", pipe_list);
       sleep(sleep_time);
     }
   } else {
+    //父进程继续执行
     while (1) {
+      //展示命令行提示符
       interface(prompt);
-      input = readline(prompt);
-      // 检查输入是否为空
-      if (input == NULL) {
-        printf("\n");
-        break;
-      } else if (*input == '\0') {
+      //readline库，接收输入命令
+      input = readline(prompt);    
+
+      //输入为空则跳过
+      if (*input == '\0') {
         continue;
       }
       // 如果输入非空，将其添加到历史记录中
       else if (*input && !(strstr(input, "!"))) {
-        add_history(input); // 不加！这个的，因为它不是一条命令
+        // 不加！这个的，因为它不是一条命令，而属于历史命令替换
+        add_history(input); 
       }
+      //管道输入给监视进程命令
       sprintf(pipe_write, "%d %s\n", count, input);
       count++;
       write(p[1], pipe_write, strlen(pipe_write));
@@ -155,15 +165,17 @@ int main() {
           HISTORY_STATE *history_state = history_get_history_state();
           if (history_state && history_state->length >= 0)
             show_history(); // history命令展示
-          else {            // 如果没有命令的话~ !!展示错误！
+          else {            
+            // 如果没有命令的话 !!会显示错误！
             // 我放到了prase.c进行处理
           }
         } else if (strcmp(command, "exit") == 0) {
 
-          //!!!!!子
+          //!!!!!子进程处理
           kill_child_process(head);
           // kill(monitoring_process, SIGKILL);
 
+          //释放内存
           free(input);
           free(command);
 
@@ -172,6 +184,7 @@ int main() {
         // 如果是外置命令，直接用exec函数族执行
         else {
           prase_command(command, argv, &argc);
+          //cd内置命令实现
           if (strstr(command, "cd") != NULL) {
             if (chdir(argv[1]) == -1) {
               printf("bash: cd: %s/: No such file or directory", argv[1]);

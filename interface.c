@@ -1,17 +1,17 @@
 #include "shell.h"
 
-
 void interface(char* prompt)
 {
   char hostname[MaxSize];
   char curren_path[MaxSize];
 
-  hostname[MaxSize - 1] = '\0';
-  curren_path[MaxSize - 1] = '\0';
+  //hostname[MaxSize - 1] = '\0';
+  //curren_path[MaxSize - 1] = '\0';
 
   gethostname(hostname, MaxSize - 2);
   getcwd(curren_path,MaxSize - 2);
   uid_t uid = getuid();
+  //获取当前用户数据 通过uid
   struct passwd *pw = getpwuid(uid);
   char *base = basename(curren_path);
 
